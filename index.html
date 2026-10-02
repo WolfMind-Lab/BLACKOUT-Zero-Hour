@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>PROJECT: BLACKOUT</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#090c10;color:#fff;font-family:Arial,sans-serif;touch-action:none}
+#game{position:fixed;inset:0;background:linear-gradient(#17232d 0 48%,#1b1d1c 48% 100%)}
+#sky{position:absolute;inset:0;background:radial-gradient(circle at 70% 25%,#607889 0,#263744 35%,#11181d 75%);opacity:.9}
+#ground{position:absolute;left:-20%;right:-20%;bottom:-20%;height:70%;background:repeating-linear-gradient(0deg,#252a29 0 3px,#202422 3px 7px);transform:perspective(500px) rotateX(12deg)}
+.enemy{position:absolute;width:54px;height:100px;background:#12161a;border-radius:8px 8px 4px 4px;box-shadow:0 0 18px #000;transition:left .25s,top .25s}
+.enemy:before{content:"";position:absolute;width:32px;height:32px;background:#555;border-radius:50%;left:11px;top:-27px}
+.enemy:after{content:"";position:absolute;width:8px;height:58px;background:#272b2e;right:-12px;top:38px;transform:rotate(-12deg)}
+#e1{left:20%;top:31%}#e2{left:49%;top:23%}#e3{left:77%;top:34%}
+#hud{position:absolute;inset:0;pointer-events:none}
+#title{position:absolute;top:18px;left:20px;font-weight:800;font-size:20px;letter-spacing:2px}
+#objective{position:absolute;top:48px;left:20px;font-size:14px}
+#hp{position:absolute;bottom:28px;left:22px;font-weight:700;font-size:19px}
+#ammo{position:absolute;bottom:28px;right:22px;font-weight:700;font-size:22px}
+#cross{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:28px}
+.btn{position:absolute;border:1px solid #ffffff44;background:#ffffff18;color:white;border-radius:50%;width:82px;height:82px;font-weight:800;backdrop-filter:blur(4px);user-select:none}
+#fire{right:22px;bottom:120px;background:#b31d1d88}
+#reload{right:120px;bottom:28px;width:66px;height:66px;font-size:11px}
+#sprint{left:190px;bottom:28px;width:72px;height:72px;font-size:11px}
+#joy{position:absolute;left:22px;bottom:22px;width:145px;height:145px;border-radius:50%;border:2px solid #ffffff33;background:#ffffff0d}
+#stick{position:absolute;width:58px;height:58px;left:43px;top:43px;border-radius:50%;background:#ffffff35}
+#hint{position:absolute;top:50%;left:50%;transform:translate(-50%,55px);font-size:11px;color:#ffffff99}
+.win{position:absolute;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;background:#000b;font-size:28px;font-weight:800;text-align:center}
+.win button{margin-top:18px;padding:12px 22px;border:0;border-radius:10px;font-weight:700}
+@media(min-width:700px){#hint{font-size:14px}}
+</style>
+</head>
+<body>
+<div id="game"><div id="sky"></div><div id="ground"></div>
+<div id="e1" class="enemy"></div><div id="e2" class="enemy"></div><div id="e3" class="enemy"></div>
+<div id="hud">
+<div id="title">PROJECT: BLACKOUT</div><div id="objective">OBIETTIVO: elimina tutte le minacce</div>
+<div id="cross">+</div><div id="hint">Trascina a destra per guardarti intorno</div>
+<div id="hp">HP 100</div><div id="ammo">30 / 120</div>
+<div id="joy"><div id="stick"></div></div>
+<button id="fire" class="btn">FUOCO</button><button id="reload" class="btn">RIC.</button><button id="sprint" class="btn">CORSA</button>
+</div>
+<div id="win" class="win"><div id="winText"></div><button onclick="location.reload()">RIGIOCA</button></div>
+</div>
+<script>
+let hp=100,ammo=30,reserve=120,kills=0,reloading=false,sprinting=false;
+const enemies=[...document.querySelectorAll('.enemy')];
+const ammoEl=document.querySelector('#ammo'),hpEl=document.querySelector('#hp'),obj=document.querySelector('#objective');
+function update(){ammoEl.textContent=`${ammo} / ${reserve}`;hpEl.textContent=`HP ${hp}`}
+function shoot(){
+ if(reloading||ammo<=0){if(ammo<=0)reload();return}
+ ammo--; update();
+ const alive=enemies.filter(e=>e.style.display!=='none');
+ if(alive.length){
+   const target=alive[Math.floor(Math.random()*alive.length)];
+   target.style.display='none'; kills++;
+   obj.textContent=kills===3?'MISSIONE COMPLETATA — raggiungi l’estrazione':`MINACCE RIMANENTI: ${3-kills}`;
+   if(kills===3){document.querySelector('#win').style.display='flex';document.querySelector('#winText').textContent='MISSIONE COMPLETATA';}
+ }
+}
+function reload(){
+ if(reloading||ammo===30||reserve<=0)return;
+ reloading=true; setTimeout(()=>{let n=Math.min(30-ammo,reserve);ammo+=n;reserve-=n;reloading=false;update()},900)
+}
+document.querySelector('#fire').addEventListener('touchstart',e=>{e.preventDefault();shoot()},{passive:false});
+document.querySelector('#fire').addEventListener('click',shoot);
+document.querySelector('#reload').addEventListener('touchstart',e=>{e.preventDefault();reload()},{passive:false});
+document.querySelector('#reload').addEventListener('click',reload);
+const joy=document.querySelector('#joy'),stick=document.querySelector('#stick');let jid=null;
+function moveJoy(x,y){const r=joy.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let dx=x-cx,dy=y-cy;const max=48,d=Math.hypot(dx,dy);if(d>max){dx=dx/d*max;dy=dy/d*max}stick.style.transform=`translate(${dx}px,${dy}px)`}
+joy.addEventListener('touchstart',e=>{jid=e.changedTouches[0].identifier;moveJoy(e.touches[0].clientX,e.touches[0].clientY)},{passive:false});
+joy.addEventListener('touchmove',e=>{for(const t of e.changedTouches)if(t.identifier===jid)moveJoy(t.clientX,t.clientY)},{passive:false});
+joy.addEventListener('touchend',e=>{for(const t of e.changedTouches)if(t.identifier===jid){jid=null;stick.style.transform='translate(0,0)'}},{passive:false});
+let lookId=null,lastX=0;
+game.addEventListener('touchstart',e=>{for(const t of e.changedTouches)if(t.clientX>innerWidth*.42&&t.clientY<innerHeight*.85&&t.target.tagName!=='BUTTON'){lookId=t.identifier;lastX=t.clientX}},{passive:false});
+game.addEventListener('touchmove',e=>{for(const t of e.changedTouches)if(t.identifier===lookId){let dx=t.clientX-lastX;lastX=t.clientX;document.body.style.filter=`brightness(${1+Math.min(Math.abs(dx),20)/200})`}},{passive:false});
+document.querySelector('#sprint').addEventListener('touchstart',()=>sprinting=true);document.querySelector('#sprint').addEventListener('touchend',()=>sprinting=false);
+update();
+</script>
+</body></html>
